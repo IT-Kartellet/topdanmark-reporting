@@ -1,0 +1,108 @@
+
+.reporting .mform .fcontainer {
+	min-height: 120px;
+	width: 100%;
+}
+
+#top_course_view {
+	width: 100%;
+}
+
+#top_course_view thead {
+	background: #d0e1e8; /* for non-css3 browsers */
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fdfdff', endColorstr='#d0e1e8'); /* for IE */
+	background: -webkit-gradient(linear, left top, left bottom, from(#fdfdff), to(#d0e1e8)); /* for webkit browsers */
+	background: -moz-linear-gradient(top,  #fdfdff,  #d0e1e8); /* for firefox 3.6+ */
+	/*border-width: 1px;
+	border-color: #8dabb9;
+	border-style: solid;
+	border-left: 1px solid #8dabb9;
+	border-right: 1px solid #8dabb9;
+	border-top: 1px solid #8dabb9;*/
+	border-bottom: 1px solid #8dabb9;
+	/*background: #69804e;*/
+	padding: 2px 5px;
+}
+
+#top_course_view tbody tr {
+	text-align: center;
+}
+
+#top_course_view tbody tr .department, #top_course_view tbody tr .shortname {
+	text-align: left;
+}
+
+#top_course_view tbody tr.even {
+	background-color: #DDF;
+}
+
+#top_course_view tbody tr.odd {
+	background-color: #FFD;
+}
+
+table.course_details tbody tr.d_even {
+	background-color: #CEECF5;
+}
+
+table.course_details tbody tr.d_odd {
+	background-color: #F5A9F2;
+}
+
+table.course_details {
+	border: 1px solid gray;
+}
+
+table.course_details tbody {
+	text-align: center;
+}
+
+table.course_details tbody .name {
+	text-align: left;
+	padding: 0px 0px 0px 5px;
+}
+
+.reporting .fcontainer .fitem {
+	width: 200px;
+	height: 40px;
+	display: inline;
+	padding-top: 10px;
+}
+
+.qheader {
+	height: 40px;
+	display: block;
+	margin-top: 20px;
+	float: left;
+}
+
+.reporting .mform .fcontainer .fitemtitle {
+	float: left;
+	width: 100px;
+}
+
+.reporting .mform .fcontainer .fcheckbox {
+	width: 20px;
+	float: left;
+	padding: 0px 0px 0px 5px;
+	margin-left: 10px;
+}
+
+
+
+.reporting.quiz #page-content #region-main-box .generalbox table td:first-child{
+  text-align:left;
+}
+
+.reporting.quiz #page-content #region-main-box .generalbox table td{
+  text-align:center;
+}
+
+.reporting.quiz #page-content #region-main-box .generalbox table td:last-child{
+  background:#eeffee;
+  font-weight:900;
+}
+
+.reporting.quiz #page-content #region-main-box .generalbox table tr:last-child td:nth-child(n+1){
+  background:#ffffbb;
+  font-weight:900;
+}
