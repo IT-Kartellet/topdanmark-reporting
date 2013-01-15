@@ -47,19 +47,22 @@ $quiz = $DB->get_record( "quiz" , array( "id" => $cm->instance ) );
 // get questions answered by each user
 $questions = array();
 foreach($users as $user){
-  $attempt = latest_attempt($quiz->id,$user->username);
-  $user_questions = $DB->get_records_sql("SELECT {question}.id,{user}.username,{question}.questiontext, {question_states}.grade
-                                          FROM {question}, {question_states}, {quiz_question_instances}, {user}, {quiz_attempts}
-                                          WHERE {question}.id = {question_states}.question
-                                          AND {question}.id = {quiz_question_instances}.question
-                                          AND {quiz_question_instances}.quiz = {$quiz->id}
-                                          AND {question_states}.event IN (3,6,9)
-                                          AND {user}.username = '{$user->username}'
-                                          AND {user}.id = {quiz_attempts}.userid
-                                          AND {quiz_attempts}.uniqueid = {question_states}.attempt
-                                          AND {quiz_attempts}.uniqueid = $attempt 
-                                          GROUP BY {question}.id,{user}.username, {question}.questiontext, {question_states}.grade");
+  $user_questions = $DB->get_records_sql("SELECT TOP 1 {question}.id, {user}.username, {question}.questiontext, {quiz_question_instances}.grade
+											FROM 
+												{user}, 
+												{quiz_attempts}, 
+												{quiz},
+												{quiz_question_instances},
+												{question}
+											WHERE {quiz_attempts}.quiz = ".$quiz->id."
+											AND {quiz}.id = {quiz_attempts}.quiz
+											AND {user}.username = '".$user->username."'
+											AND {user}.id = {quiz_attempts}.userid
+											AND {quiz}.id = {quiz_question_instances}.quiz
+											AND {quiz_question_instances}.question = {question}.id
+											ORDER BY {quiz_attempts}.attempt DESC");
   $user->questions = $user_questions;
+  
   foreach($user_questions as $question){
     // append answered questions to user record
     $questions[$question->id] = $question->questiontext;
@@ -128,19 +131,17 @@ function user_mean_scores($users){
 /*
  *  Calculate mean score for this question
  */
-function question_mean_score($quiz_id,$question_id){
+function question_mean_score($quiz_id, $question_id){
   global $DB;
   $query=  " SELECT
-              qst.question, quiz, AVG(grade)
+              qst.question, AVG(grade) avg
               FROM
-              {question_states} qst
-              JOIN {quiz_attempts} qa ON qa.uniqueid = qst.attempt
-              JOIN {user} u ON qa.userid = u.id
+              {quiz_question_instances} qst
               WHERE
               qst.question = $question_id
-              AND qa.quiz = $quiz_id
+              AND qst.quiz = $quiz_id
               GROUP BY
-              qst.question, qa.quiz";
+              qst.question";
 
   $result = $DB->get_record_sql($query);
   return $result->avg;
@@ -149,8 +150,9 @@ function question_mean_score($quiz_id,$question_id){
 /*
  *  Get the id of the latest attempt made by a user in a quiz
  */
-function latest_attempt($quiz_id,$username){
+function latest_attempt($quiz_id, $username){
   global $DB;
+  var_dump($quiz_id);
   $result = $DB->get_record_sql("SELECT MAX({question_states}.attempt)
                                           FROM {question}, {question_states}, {quiz_question_instances}, {user}, {quiz_attempts}
                                           WHERE {question}.id = {question_states}.question
@@ -161,6 +163,7 @@ function latest_attempt($quiz_id,$username){
                                           AND {user}.id = {quiz_attempts}.userid
                                           AND {quiz_attempts}.uniqueid = {question_states}.attempt
                                           ");
+										  
   return (int)$result->max;
 }
 ?>

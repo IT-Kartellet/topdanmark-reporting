@@ -154,8 +154,8 @@ foreach($users as $account){
 							$icon_src = "";
 							
 							//Get the correct icon for the module. We look in our new plugins, the old and finally shows a "not-found" icon if none of those exists. 
-							if(file_exists($CFG->dirroot."/theme/topdanmark/pix_plugins/mod/".$activity->mod."/icon.png")){
-								$icon_src = $CFG->wwwroot."/theme/topdanmark/pix_plugins/mod/".$activity->mod."/icon.png";
+							if(file_exists($CFG->dirroot."/mod/".$activity->mod."/pix/icon.png")){
+								$icon_src = $CFG->wwwroot."/mod/".$activity->mod."/pix/icon.png";
               }
 							elseif($icon_src == "" && file_exists($CFG->dirroot."/theme/topdanmark/pix_old/pix_core/mod/".$activity->mod."/icon.gif")){
 								$icon_src = $CFG->wwwroot."/theme/topdanmark/pix_old/pix_core/mod/".$activity->mod."/icon.gif";
@@ -164,14 +164,15 @@ foreach($users as $account){
 								$icon_src = $CFG->wwwroot."/theme/topdanmark/unknown.png";
               }
 							if(file_exists($CFG->dirroot."/mod/".$activity->mod."/report.php")){							
-								$report = "<a href='$CFG->wwwroot/local/reporting/$activity->mod/report.php?id=$activity->cm'>Report</a>";
-							}else {
+								$report = "<a href='$CFG->wwwroot/mod/$activity->mod/report.php?id=$activity->cm'>Report</a>";
+							}
+							else {
 								$report = " - ";
 							}
 							
 							//Set details, which should have a link to their own report
-							if($activity->mod == 'quiz' || $activity->mod == 'scorm'){
-								$details = " - ";
+							if($activity->mod == 'quiz'){
+								$details = "<a href='$CFG->wwwroot/local/reporting/$activity->mod/report.php?id=$activity->cm'>Details</a>";
 							}else {
 								$details = " - ";
 							}
