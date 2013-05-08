@@ -1,3 +1,14 @@
+<style>
+    @media print {
+        #page-header, #page-footer, #region-pre, #printbutton {
+            display: none;
+        }
+        #region-main#region-main#region-main {
+            margin-left: 0px;
+        }
+        tr    { page-break-inside:avoid; page-break-after:auto }
+    }
+</style>
 <?php
 
 include('../../../config.php');
@@ -27,7 +38,12 @@ $PAGE->add_body_class("quiz");
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading( "Quiz Report", 1, 'title', 'reportingtitle');
-echo $OUTPUT->box_start();
+?>
+<input id="printbutton" type="button"
+       onClick="window.print()"
+       value="Print this report"/>
+<?php
+echo $OUTPUT->box_start('generalbox', 'reportingbox');
 
 $tester = $DB->get_record("user", array('username' => 'tester') );
 
@@ -47,7 +63,8 @@ $quiz = $DB->get_record( "quiz" , array( "id" => $cm->instance ) );
 // get questions answered by each user
 $questions = array();
 foreach($users as $user){
-  $user_questions = $DB->get_records_sql("SELECT TOP 1 {question}.id, {user}.username, {question}.questiontext, {quiz_question_instances}.grade
+    //Niclas
+  /*$user_questions = $DB->get_records_sql("SELECT {question}.id, {user}.username, {question}.questiontext, {quiz_question_instances}.grade
 											FROM 
 												{user}, 
 												{quiz_attempts}, 
@@ -60,12 +77,66 @@ foreach($users as $user){
 											AND {user}.id = {quiz_attempts}.userid
 											AND {quiz}.id = {quiz_question_instances}.quiz
 											AND {quiz_question_instances}.question = {question}.id
-											ORDER BY {quiz_attempts}.attempt DESC");
-  $user->questions = $user_questions;
+											ORDER BY {quiz_attempts}.attempt DESC");*/
   
-  foreach($user_questions as $question){
-    // append answered questions to user record
-    $questions[$question->id] = $question->questiontext;
+  //Get the id of the latest finished attempt on the quiz by the user
+  //$sub_query_for_latest_attempt = "SELECT sub_attempt.id from {quiz_attempts} sub_attempt WHERE sub_attempt.userid = attempt.userid AND sub_attempt.quiz = attempt.quiz AND sub_attempt.state = 'finished' ORDER BY sub_attempt.attempt DESC LIMIT 1";
+
+    //(fraction * mark as grade)
+    //select * from mdl_question_attempt_steps where fraction is not null and userid = 2;
+  /*$user_questions = $DB->get_records_sql("SELECT {question}.id, {user}.username, {question}.questiontext
+											FROM
+												{user},
+												{quiz_attempts} attempt,
+												{quiz},
+												{quiz_question_instances},
+												{question}
+											WHERE attempt.quiz = ".$quiz->id."
+											AND {quiz}.id = attempt.quiz
+											AND attempt.state = 'finished'
+											AND {user}.username = '".$user->username."'
+											AND {user}.id = attempt.userid
+											AND {quiz}.id = {quiz_question_instances}.quiz
+											AND {quiz_question_instances}.question = {question}.id
+											AND attempt.id = ($sub_query_for_latest_attempt)");*/
+
+  /*
+   * Selecting attributes regarding the latest graded attempt at a question from the quiz in question, where the user was the one who initiated the attempt.
+   * The somewhat confusing check of user is because the question_attempt_steps table records the user responsible for each little step in the attempt ->
+   * That is, the teacher userid will be listed for a manual grading. Thus we will need to check against the 'to do' step as this holds the original initiator of the attempt.
+   */
+  $questions_attempts = $DB->get_records_sql("SELECT attempt_step.id as uniqueid, {question}.id, {user}.username, {question}.questiontext, attempt.maxmark, attempt.minfraction, attempt_step.fraction
+											FROM
+												{quiz},
+												{user},
+												{quiz_question_instances},
+												{question},
+												{question_attempts} attempt,
+												{question_attempt_steps} attempt_step
+											WHERE {quiz}.id = ".$quiz->id."
+											AND {user}.username = '".$user->username."'
+											AND {quiz}.id = {quiz_question_instances}.quiz
+											AND {quiz_question_instances}.question = {question}.id
+											AND attempt.questionid = {question}.id
+											AND attempt_step.questionattemptid = attempt.id
+											AND {user}.id = (SELECT userid from {question_attempt_steps} WHERE {question_attempt_steps}.questionattemptid = attempt_step.questionattemptid AND state = 'todo')
+											AND attempt_step.fraction IS NOT NULL
+											ORDER BY attempt_step.timecreated DESC");
+
+  $user->questions = array();
+  foreach($questions_attempts as $question){
+      $questions[$question->id] = $question->questiontext;
+
+      if(!array_key_exists($question->id, $user->questions)) { //if it was not already added (result sorted with newest attempt first)
+          //set the grade of the question
+          $fraction = ($question->fraction < $question->minfraction)? $question->minfraction :  $question->fraction;
+          $question->grade = $question->maxmark * $fraction;
+          unset($question->fraction);
+          unset($question->minfraction);
+          unset($question->maxmark);
+          $user->questions[$question->id] = $question;
+      }
+
   }
 }
 
@@ -86,9 +157,11 @@ foreach( $questions as $qid => $q ){
   $user_scores = get_scores($qid, $users);
   // calculate mean score for question
   $qms =  question_mean_score($quiz->id, $qid);
-  $question_mean = (float)round($qms,3);
+
+  //$question_mean = calculate_average($user_scores);//(float)round($qms,3);
   $score_count = array_sum( array_map( function($score){return ( is_numeric($score) ) ? 1 :0 ;} , $user_scores ) );
   $score_sum = array_sum( array_map( function($score){return ( is_numeric($score) ) ? $score :0 ;} , $user_scores ) );
+  $question_mean = ($score_count == 0) ? "-" : round($score_sum / $score_count, 3) ;
   $table->data[] = array_merge( array($q) , $user_scores , array( $question_mean ) );
 }
 // insert last row ( user mean scores )
@@ -103,11 +176,22 @@ echo $OUTPUT->footer();
  *  Retrieves the users' scores for a given question
  */
 function get_scores($qid,$users){
-  $user_scores = array();
-  foreach($users as $user){
-    $user_scores[] = (array_key_exists($qid,$user->questions) ) ? round($user->questions[$qid]->grade, 3) : "-";
-  }
-  return $user_scores;
+    $user_scores = array();
+    foreach($users as $user){
+        $user_scores[] = (array_key_exists($qid,$user->questions) ) ? round($user->questions[$qid]->grade, 3) : "-";
+    }
+    return $user_scores;
+}
+
+function get_average($arr) {
+    $total = 0;
+    $count = 0;
+    foreach ($arr as $value) {
+        if(is_nu)
+        $total = $total + $value; // total value of array numbers
+    }
+    $average = ($total/$count); // get average value
+    return $average;
 }
 
 /*
@@ -123,7 +207,7 @@ function user_mean_scores($users){
       $score_sum += $question->grade; 
     }
     // calculate mean 
-    $scores[] = ($score_count == 0) ? "-" : $score_sum / $score_count ;
+    $scores[] = ($score_count == 0) ? "-" : round($score_sum / $score_count, 3) ;
   }
   return $scores;
 }
