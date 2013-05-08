@@ -1,14 +1,3 @@
-<style>
-    @media print {
-        #page-header, #page-footer, #region-pre, #printbutton {
-            display: none;
-        }
-        #region-main#region-main#region-main {
-            margin-left: 0px;
-        }
-        tr    { page-break-inside:avoid; page-break-after:auto }
-    }
-</style>
 <?php
 
 include('../../../config.php');
