@@ -70,7 +70,9 @@ if(@isset($SESSION->report_form)){
     }
 }
 
-$mform_filter->display();
+// $mform_filter->display();
+
+echo get_string('frontpage-description', 'local_reporting');
 
 echo $OUTPUT->box_end();
 
@@ -148,67 +150,63 @@ foreach($users as $account){
         foreach($course_activities as $activity){
             $status = " - ";
 
-            //If the activity has been chosen in the form, we go through
-            if(in_array($activity->mod, $mods)){
+            $icon_src = "";
 
-                $icon_src = "";
-
-                //Get the correct icon for the module. We look in our new plugins, the old and finally shows a "not-found" icon if none of those exists.
-                if(file_exists($CFG->dirroot."/mod/".$activity->mod."/pix/icon.png")){
-                    $icon_src = $CFG->wwwroot."/mod/".$activity->mod."/pix/icon.png";
-                }
-                elseif($icon_src == "" && file_exists($CFG->dirroot."/theme/topdanmark/pix_old/pix_core/mod/".$activity->mod."/icon.gif")){
-                    $icon_src = $CFG->wwwroot."/theme/topdanmark/pix_old/pix_core/mod/".$activity->mod."/icon.gif";
-                }
-                elseif($icon_src == "") {
-                    $icon_src = $CFG->wwwroot."/theme/topdanmark/unknown.png";
-                }
-                if(file_exists($CFG->dirroot."/mod/".$activity->mod."/report.php")){
-                    $report = "<a href='$CFG->wwwroot/mod/$activity->mod/report.php?id=$activity->cm'>Report</a>";
-                }
-                else {
-                    $report = " - ";
-                }
-
-                //Set details, which should have a link to their own report
-                if($activity->mod == 'quiz'){
-                    $details = "<a href='$CFG->wwwroot/local/reporting/$activity->mod/report.php?id=$activity->cm'>Details</a>";
-                }else {
-                    $details = " - ";
-                }
-                //Se if the activity has been completed, is tracked or is in progress
-                if(@isset($user_completion['activities'][$activity->cm])){
-                    $status = "Done";
-                }elseif(@isset($user_completion['tracked_activities'][$activity->cm])) {
-                    $status = "In Progress";
-                }else{
-                    $status = "Not Tracked";
-                }
-                //If the module supports grades, we will collect the grades and show them.
-                if($activity->mod == 'quiz' || $activity->mod == 'scorm' || $activity->mod == 'assign'){
-                    $grades = grade_get_grades($course->id, 'mod', $activity->mod, $activity->id, $account->id);
-
-                    if(!empty($grades->items[0]->grades)){
-                        $grade = reset($grades->items[0]->grades);
-                        //var_dump($grade);
-                        $score = $grade->str_long_grade;
-                    }
-
-                }else{
-                    $score = " - ";
-                }
-                //Save activity within the course
-                $activity->icon_src = $icon_src;
-                $activity->activity_status = $status;
-                $activity->score = $score;
-                $activity->report = $report;
-                $activity->details = $details;
-
-                //Save the actuall activity
-                $course->activities[$activity->id] = $activity;
-                //$clean[$account->id."_".$course->id]['activities'][$activity->id] = $activity;
-                $clean[$account->id."_".$course->id]['activities'][] = $activity;
+            //Get the correct icon for the module. We look in our new plugins, the old and finally shows a "not-found" icon if none of those exists.
+            if(file_exists($CFG->dirroot."/mod/".$activity->mod."/pix/icon.png")){
+                $icon_src = $CFG->wwwroot."/mod/".$activity->mod."/pix/icon.png";
             }
+            elseif($icon_src == "" && file_exists($CFG->dirroot."/theme/topdanmark/pix_old/pix_core/mod/".$activity->mod."/icon.gif")){
+                $icon_src = $CFG->wwwroot."/theme/topdanmark/pix_old/pix_core/mod/".$activity->mod."/icon.gif";
+            }
+            elseif($icon_src == "") {
+                $icon_src = $CFG->wwwroot."/theme/topdanmark/unknown.png";
+            }
+            if(file_exists($CFG->dirroot."/mod/".$activity->mod."/report.php")){
+                $report = "<a href='$CFG->wwwroot/mod/$activity->mod/report.php?id=$activity->cm'>Report</a>";
+            }
+            else {
+                $report = " - ";
+            }
+
+            //Set details, which should have a link to their own report
+            if($activity->mod == 'quiz'){
+                $details = "<a href='$CFG->wwwroot/local/reporting/$activity->mod/report.php?id=$activity->cm'>Details</a>";
+            }else {
+                $details = " - ";
+            }
+            //Se if the activity has been completed, is tracked or is in progress
+            if(@isset($user_completion['activities'][$activity->cm])){
+                $status = "Done";
+            }elseif(@isset($user_completion['tracked_activities'][$activity->cm])) {
+                $status = "In Progress";
+            }else{
+                $status = "Not Tracked";
+            }
+            //If the module supports grades, we will collect the grades and show them.
+            if($activity->mod == 'quiz' || $activity->mod == 'scorm' || $activity->mod == 'assign'){
+                $grades = grade_get_grades($course->id, 'mod', $activity->mod, $activity->id, $account->id);
+
+                if(!empty($grades->items[0]->grades)){
+                    $grade = reset($grades->items[0]->grades);
+                    //var_dump($grade);
+                    $score = $grade->str_long_grade;
+                }
+
+            }else{
+                $score = " - ";
+            }
+            //Save activity within the course
+            $activity->icon_src = $icon_src;
+            $activity->activity_status = $status;
+            $activity->score = $score;
+            $activity->report = $report;
+            $activity->details = $details;
+
+            //Save the actuall activity
+            $course->activities[$activity->id] = $activity;
+            //$clean[$account->id."_".$course->id]['activities'][$activity->id] = $activity;
+            $clean[$account->id."_".$course->id]['activities'][] = $activity;            
         }
         $account->courses[$course->id] = $course;
     }

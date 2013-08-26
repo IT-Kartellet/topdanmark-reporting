@@ -32,6 +32,12 @@ echo $OUTPUT->heading( "Quiz Report", 1, 'title', 'reportingtitle');
        onClick="window.print()"
        value="Print this report"/>
 <?php
+
+echo $OUTPUT->box_start();
+
+echo get_string('quiz-frontpage-description', 'local_reporting');
+
+echo $OUTPUT->box_end();
 echo $OUTPUT->box_start('generalbox', 'reportingbox');
 
 $tester = $DB->get_record("user", array('username' => 'tester') );
