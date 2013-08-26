@@ -67,7 +67,7 @@ if(@isset($SESSION->report_form)){
         }
     }else{
         $mods = array('quiz', 'scorm', 'assignment');
-    }	
+    }
 }
 
 $mform_filter->display();
@@ -90,18 +90,18 @@ elseif(@isset($username)){
 //Run though each of these users to get context per course
 foreach($users as $account){
 
-    //Get the account of the user, which is needed since we are using id from the user and tons of other stoff along the way. 
+    //Get the account of the user, which is needed since we are using id from the user and tons of other stoff along the way.
     $account = $DB->get_record('user', array('username' => $account), '*', MUST_EXIST);
     $account->courses = array();
 
-    //Get the users courses and run through each of these. 
+    //Get the users courses and run through each of these.
     //The user has to have an active enrolment in each of the courses
-    $account_courses = enrol_get_users_courses($account->id, true);	
+    $account_courses = enrol_get_users_courses($account->id, true);
 
     foreach($account_courses as $course){
-        $clean[$account->id."_".$course->id] = array("username" => $account->username, 
-            "firstname" => $account->firstname, 
-            "lastname" => $account->lastname, 
+        $clean[$account->id."_".$course->id] = array("username" => $account->username,
+            "firstname" => $account->firstname,
+            "lastname" => $account->lastname,
             "department" => $account->department,
             "course" => $course->shortname,
             "activities" => array(),
@@ -125,11 +125,11 @@ foreach($users as $account){
         $last_record = $DB->get_record('user_lastaccess', array('userid' => $account->id, 'courseid' => $course->id));
         $last_access = $last_record->timeaccess;
 
-        //Look of the course is being tracked or not. 
+        //Look of the course is being tracked or not.
         if(count($user_completion['tracked_activities']) == 0){
             $course_status = "Not Tracked";
         }
-        //If the course is tracked, we see if all activities has been completed. 
+        //If the course is tracked, we see if all activities has been completed.
         elseif(count($user_completion['tracked_activities']) == count($user_completion['activities'])){
             $course_status = "Finished";
             //Since the course is being tracked, but not all activities has been completed we show the number of activities vs. the number that have been completed.
@@ -153,7 +153,7 @@ foreach($users as $account){
 
                 $icon_src = "";
 
-                //Get the correct icon for the module. We look in our new plugins, the old and finally shows a "not-found" icon if none of those exists. 
+                //Get the correct icon for the module. We look in our new plugins, the old and finally shows a "not-found" icon if none of those exists.
                 if(file_exists($CFG->dirroot."/mod/".$activity->mod."/pix/icon.png")){
                     $icon_src = $CFG->wwwroot."/mod/".$activity->mod."/pix/icon.png";
                 }
@@ -163,7 +163,7 @@ foreach($users as $account){
                 elseif($icon_src == "") {
                     $icon_src = $CFG->wwwroot."/theme/topdanmark/unknown.png";
                 }
-                if(file_exists($CFG->dirroot."/mod/".$activity->mod."/report.php")){							
+                if(file_exists($CFG->dirroot."/mod/".$activity->mod."/report.php")){
                     $report = "<a href='$CFG->wwwroot/mod/$activity->mod/report.php?id=$activity->cm'>Report</a>";
                 }
                 else {
@@ -184,7 +184,7 @@ foreach($users as $account){
                 }else{
                     $status = "Not Tracked";
                 }
-                //If the module supports grades, we will collect the grades and show them. 
+                //If the module supports grades, we will collect the grades and show them.
                 if($activity->mod == 'quiz' || $activity->mod == 'scorm' || $activity->mod == 'assign'){
                     $grades = grade_get_grades($course->id, 'mod', $activity->mod, $activity->id, $account->id);
 
@@ -197,7 +197,7 @@ foreach($users as $account){
                 }else{
                     $score = " - ";
                 }
-                //Save activity within the course		
+                //Save activity within the course
                 $activity->icon_src = $icon_src;
                 $activity->activity_status = $status;
                 $activity->score = $score;
@@ -245,7 +245,7 @@ foreach($headers as $header){
 echo "</tr></thead>";
 echo "<tbody>";
 
-//Make a Counter to control the color of each table row. 
+//Make a Counter to control the color of each table row.
 $counter = 0;
 
 //Go through the array and print everything out!
@@ -254,7 +254,7 @@ foreach($clean as $course){
     $class = ($counter & 1)	? "odd" : "even";
     $counter++;
 
-    //Now echo the hidden table, with all the course detail for the active user. 
+    //Now echo the hidden table, with all the course detail for the active user.
     echo "<tr class='$class'>";
     echo "<td class='username'><a href='$CFG->wwwroot/local/reporting/index.php?username=".$course['username']."'>".$course['username']."</a></td>";
     echo "<td class='firstname'>".$course['firstname']."</td>";
@@ -287,15 +287,15 @@ foreach($clean as $course){
         echo "<td class='name'><a href='$CFG->wwwroot/mod/$activity->mod/view.php?id=$activity->cm'>$activity->name</a></td>";
         echo "<td class='status'>$activity->activity_status</td>";
         echo "<td class='score'>$activity->score</td>";
-        echo "<td class='report'>$activity->report</td>";								
+        echo "<td class='report'>$activity->report</td>";
         echo "<td class='details'>$activity->details</td>";
         echo "</tr>";
     }
 
     echo "</tbody>";
     echo "</table>";
-    echo "</td>";			
-    echo "</tr>";		
+    echo "</td>";
+    echo "</tr>";
 }
 
 echo "</tbody>";

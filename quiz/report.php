@@ -154,7 +154,9 @@ foreach( $questions as $qid => $q ){
   $table->data[] = array_merge( array($q) , $user_scores , array( $question_mean ) );
 }
 // insert last row ( user mean scores )
-$table->data[] = array_merge( array("User Mean"), user_mean_scores($users) );
+list($user_scores, $total_score) = user_mean_scores($users);
+$table->data[] = array_merge( array("User Mean Percentage, individual"), $user_scores);
+$table->data[] = array_merge( array("User Mean Percentage, all"), array_fill(0, count($user_scores), ''), array(number_format($total_score, 2) . '%'));
 
 // output table
 echo html_writer::table($table);
@@ -188,6 +190,8 @@ function get_average($arr) {
  */
 function user_mean_scores($users){
   $scores = array();
+  $total_score = 0;
+
   foreach($users as $user){
     $score_count = 0;
     $score_sum = 0;
@@ -196,9 +200,12 @@ function user_mean_scores($users){
       $score_sum += $question->grade; 
     }
     // calculate mean 
-    $scores[] = ($score_count == 0) ? "-" : round($score_sum / $score_count, 3) ;
+    $scores[] = ($score_count == 0) ? "-" : round($score_sum / $score_count, 3) * 100 . '%';
+
+    $total_score += ($score_count == 0) ? 0 : round($score_sum / $score_count, 3) * 100;
   }
-  return $scores;
+
+  return array($scores, $total_score / count($scores));
 }
 
 /*
