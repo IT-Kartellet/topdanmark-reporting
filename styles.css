@@ -102,7 +102,9 @@ table.course_details tbody .name {
   font-weight:900;
 }
 
-.reporting.quiz #page-content #region-main-box .generalbox table tr:last-child td:nth-child(n+1){
+.reporting.quiz #page-content #region-main-box .generalbox table tr:last-child td:nth-child(n+1),
+.reporting.quiz #page-content #region-main-box .generalbox table tr:nth-last-child(2) td:nth-child(n+1)
+{
   background:#ffffbb;
   font-weight:900;
 }

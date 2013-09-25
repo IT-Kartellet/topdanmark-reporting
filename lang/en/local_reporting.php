@@ -35,3 +35,5 @@ $string['course'] = "Kursus";
 $string['status'] = "Status";
 $string['details'] = "Detaljer";
 $string['lastaccess'] = "Sidst set";
+$string['frontpage-description'] = 'frontpage-description';
+$string['quiz-frontpage-description'] = 'quiz-frontpage-description';

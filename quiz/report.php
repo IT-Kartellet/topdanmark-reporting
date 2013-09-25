@@ -32,6 +32,12 @@ echo $OUTPUT->heading( "Quiz Report", 1, 'title', 'reportingtitle');
        onClick="window.print()"
        value="Print this report"/>
 <?php
+
+echo $OUTPUT->box_start();
+
+echo get_string('quiz-frontpage-description', 'local_reporting');
+
+echo $OUTPUT->box_end();
 echo $OUTPUT->box_start('generalbox', 'reportingbox');
 
 $tester = $DB->get_record("user", array('username' => 'tester') );
@@ -94,7 +100,14 @@ foreach($users as $user){
    * The somewhat confusing check of user is because the question_attempt_steps table records the user responsible for each little step in the attempt ->
    * That is, the teacher userid will be listed for a manual grading. Thus we will need to check against the 'to do' step as this holds the original initiator of the attempt.
    */
-  $questions_attempts = $DB->get_records_sql("SELECT attempt_step.id as uniqueid, {question}.id, {user}.username, {question}.questiontext, attempt.maxmark, attempt.minfraction, attempt_step.fraction
+  $questions_attempts = $DB->get_records_sql("SELECT
+												attempt_step.id as uniqueid, 
+												{question}.id, 
+												{user}.username, 
+												{question}.questiontext, 
+												attempt.maxmark, 
+												attempt.minfraction, 
+												attempt_step.fraction
 											FROM
 												{quiz},
 												{user},
@@ -108,10 +121,10 @@ foreach($users as $user){
 											AND {quiz_question_instances}.question = {question}.id
 											AND attempt.questionid = {question}.id
 											AND attempt_step.questionattemptid = attempt.id
-											AND {user}.id = (SELECT userid from {question_attempt_steps} WHERE {question_attempt_steps}.questionattemptid = attempt_step.questionattemptid AND state = 'todo')
+											AND {user}.id = (SELECT TOP 1 userid from {question_attempt_steps} WHERE {question_attempt_steps}.questionattemptid = attempt_step.questionattemptid AND state = 'todo')
 											AND attempt_step.fraction IS NOT NULL
 											ORDER BY attempt_step.timecreated DESC");
-
+	
   $user->questions = array();
   foreach($questions_attempts as $question){
       $questions[$question->id] = $question->questiontext;
@@ -141,7 +154,18 @@ foreach($relevant_usernames as $username){
 $table->head[] = "Question Mean Score";
 $table->data = array();
 
-foreach( $questions as $qid => $q ){
+// sort questions according to the ordering that was given when the questions where created
+$questionorder = explode(',', $quiz->questions);
+
+$question_texts = $questions;
+$question_ids = array_keys($questions);
+
+usort($question_ids, function ($one, $two) use ($questionorder) {
+	return array_search($one, $questionorder) > array_search($two, $questionorder) ? 1 : -1;
+});
+
+foreach( $question_ids as $qid ){
+	$q = $question_texts[$qid];
   //add result column for each user
   $user_scores = get_scores($qid, $users);
   // calculate mean score for question
@@ -154,7 +178,9 @@ foreach( $questions as $qid => $q ){
   $table->data[] = array_merge( array($q) , $user_scores , array( $question_mean ) );
 }
 // insert last row ( user mean scores )
-$table->data[] = array_merge( array("User Mean"), user_mean_scores($users) );
+list($user_scores, $total_score) = user_mean_scores($users);
+$table->data[] = array_merge( array("User Mean Percentage, individual"), $user_scores);
+$table->data[] = array_merge( array("User Mean Percentage, all"), array_fill(0, count($user_scores), ''), array(number_format($total_score, 2) . '%'));
 
 // output table
 echo html_writer::table($table);
@@ -188,6 +214,8 @@ function get_average($arr) {
  */
 function user_mean_scores($users){
   $scores = array();
+  $total_score = 0;
+
   foreach($users as $user){
     $score_count = 0;
     $score_sum = 0;
@@ -196,9 +224,12 @@ function user_mean_scores($users){
       $score_sum += $question->grade; 
     }
     // calculate mean 
-    $scores[] = ($score_count == 0) ? "-" : round($score_sum / $score_count, 3) ;
+    $scores[] = ($score_count == 0) ? "-" : round($score_sum / $score_count, 3) * 100 . '%';
+
+    $total_score += ($score_count == 0) ? 0 : round($score_sum / $score_count, 3) * 100;
   }
-  return $scores;
+
+  return array($scores, $total_score / count($scores));
 }
 
 /*
