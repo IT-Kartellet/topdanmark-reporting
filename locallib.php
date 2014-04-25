@@ -6,17 +6,19 @@ function get_relevant_users($user){
 	$users = array();
 
 
-    /*if($user->username == 'admin'){
-    global $DB;
-    foreach($DB->get_records('user') as $uobj) {
-        $users[$uobj->username] = $uobj->username;
-    }*/
-    if($user->username == 'xag'){
-		$users = get_top_org('kaj', array(), false);
-	}else{
-		$users = get_top_org($user->username, array(), false);
-	}
-	return $users;
+    if($user->username == 'admin'){
+        global $DB;
+        foreach($DB->get_records('user') as $uobj) {
+            $users[$uobj->username] = $uobj->username;
+        }
+    }
+//    if($user->username == 'xag'){
+//        $users = get_top_org('kaj', array(), false);
+//    }
+//    else{
+//        $users = get_top_org($user->username, array(), false);
+//    }
+    return $users;
 }
 
 function orderBy($data, $field, $mode){

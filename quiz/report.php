@@ -10,6 +10,7 @@ $cmid = optional_param('id', 0, PARAM_INT); // course_module ID
 
 global $CFG, $USER, $PAGE, $DB, $OUTPUT;
 
+
 require_login();
 
 $context = get_context_instance(CONTEXT_SYSTEM);
@@ -33,6 +34,44 @@ echo $OUTPUT->heading( "Quiz Report", 1, 'title', 'reportingtitle');
        value="Print this report"/>
 <?php
 
+// get the quiz object
+$cm = get_coursemodule_from_id("quiz",$cmid);
+$quiz = $DB->get_record( "quiz" , array( "id" => $cm->instance ) );
+
+$relevant_usernames = get_relevant_users($USER);
+
+
+// The next ~20 lines might not be a good way to do it, but it works...
+//single_select($url, $name, array $options, $selected = '', $nothing = array('' => 'choosedots')
+$user_select = new single_select(new moodle_url($_SERVER['SCRIPT_NAME'],array('id'=>$cmid,'select_cate'=>isset($_GET['select_cate']) ? $_GET['select_cate'] : 'All')),'select_user',array_merge(array('All'=>'All'), $relevant_usernames));
+echo "<br><br>";
+echo get_string('choose', 'local_reporting')." ".get_string('user', 'local_reporting').":";
+echo $OUTPUT->render($user_select);
+
+if (isset($_GET['select_user']) && $_GET['select_user']!='All'){
+    $relevant_usernames = array($_GET['select_user']);
+}
+
+$relevant_categories_sql = $DB->get_records_sql(
+    "SELECT mdl_question.category FROM ("
+    . "mdl_quiz_question_instances INNER JOIN mdl_question "
+    . "ON mdl_quiz_question_instances.question=mdl_question.id) "
+    . "WHERE mdl_quiz_question_instances.quiz=".$quiz->id." "
+    . "GROUP BY category");
+
+$category_names_sql = $DB->get_records_sql("SELECT id,name FROM mdl_question_categories");
+
+// converting obj->obj->value to array of id=>value
+$relevant_categories = array('All'=>'All');
+foreach ($relevant_categories_sql as $qc){
+    $relevant_categories[$qc->category] = $category_names_sql[$qc->category]->name;
+}
+
+$category_select = new single_select(new moodle_url($_SERVER['SCRIPT_NAME'],array('id'=>$cmid,'select_user'=>isset($_GET['select_user']) ? $_GET['select_user'] : 'All')),'select_cate',$relevant_categories);
+echo get_string('choose', 'local_reporting')." ".get_string('category', 'local_reporting').":";
+echo $OUTPUT->render($category_select);
+
+
 echo $OUTPUT->box_start();
 
 echo get_string('quiz-frontpage-description', 'local_reporting');
@@ -42,17 +81,13 @@ echo $OUTPUT->box_start('generalbox', 'reportingbox');
 
 $tester = $DB->get_record("user", array('username' => 'tester') );
 
-// get usernames of subordinate employees
-$relevant_usernames = get_relevant_users( $USER );
 
 $users = array();
 foreach($relevant_usernames as $uname){
-  $users[] = $DB->get_record( "user" , array( "username" => $uname ) );
+  $users[] = $DB->get_record( "user" , array( "username" => $uname ));
 }
 
-// get the quiz object
-$cm = get_coursemodule_from_id("quiz",$cmid);
-$quiz = $DB->get_record( "quiz" , array( "id" => $cm->instance ) );
+
 
 
 // get questions answered by each user
@@ -100,30 +135,32 @@ foreach($users as $user){
    * The somewhat confusing check of user is because the question_attempt_steps table records the user responsible for each little step in the attempt ->
    * That is, the teacher userid will be listed for a manual grading. Thus we will need to check against the 'to do' step as this holds the original initiator of the attempt.
    */
-  $questions_attempts = $DB->get_records_sql("SELECT
-												attempt_step.id as uniqueid, 
-												{question}.id, 
-												{user}.username, 
-												{question}.questiontext, 
-												attempt.maxmark, 
-												attempt.minfraction, 
-												attempt_step.fraction
-											FROM
-												{quiz},
-												{user},
-												{quiz_question_instances},
-												{question},
-												{question_attempts} attempt,
-												{question_attempt_steps} attempt_step
-											WHERE {quiz}.id = ".$quiz->id."
-											AND {user}.username = '".$user->username."'
-											AND {quiz}.id = {quiz_question_instances}.quiz
-											AND {quiz_question_instances}.question = {question}.id
-											AND attempt.questionid = {question}.id
-											AND attempt_step.questionattemptid = attempt.id
-											AND {user}.id = (SELECT TOP 1 userid from {question_attempt_steps} WHERE {question_attempt_steps}.questionattemptid = attempt_step.questionattemptid AND state = 'todo')
-											AND attempt_step.fraction IS NOT NULL
-											ORDER BY attempt_step.timecreated DESC");
+  $questions_attempts = $DB->get_records_sql(
+      "SELECT
+                attempt_step.id as uniqueid, 
+                {question}.id, 
+                {user}.username, 
+                {question}.questiontext, 
+                attempt.maxmark, 
+                attempt.minfraction, 
+                attempt_step.fraction
+        FROM
+                {quiz},
+                {user},
+                {quiz_question_instances},
+                {question},
+                {question_attempts} attempt,
+                {question_attempt_steps} attempt_step
+        WHERE {quiz}.id = ".$quiz->id."
+        AND {user}.username = '".$user->username."'
+        AND {quiz}.id = {quiz_question_instances}.quiz
+        AND {quiz_question_instances}.question = {question}.id
+        AND attempt.questionid = {question}.id
+        AND attempt_step.questionattemptid = attempt.id
+        AND {user}.id = (SELECT userid from {question_attempt_steps} WHERE {question_attempt_steps}.questionattemptid = attempt_step.questionattemptid AND state = 'todo')
+        AND attempt_step.fraction IS NOT NULL
+        ORDER BY attempt_step.timecreated DESC");
+//  AND {user}.id = (SELECT TOP 1 userid from {question_attempt_steps} WHERE {question_attempt_steps}.questionattemptid = attempt_step.questionattemptid AND state = 'todo')
 	
   $user->questions = array();
   foreach($questions_attempts as $question){
@@ -138,13 +175,13 @@ foreach($users as $user){
           unset($question->maxmark);
           $user->questions[$question->id] = $question;
       }
-
   }
 }
 
 // Create scores table
 $table = new html_table();
-$table->head = array("");
+$table->head = array(get_string('question_category', 'local_reporting'));
+$table->head[] = "";
 
 // add a header field for each user
 foreach($relevant_usernames as $username){
@@ -152,6 +189,7 @@ foreach($relevant_usernames as $username){
 }
 
 $table->head[] = "Question Mean Score";
+//$table->head[] = "Question Category";
 $table->data = array();
 
 // sort questions according to the ordering that was given when the questions where created
@@ -160,27 +198,63 @@ $questionorder = explode(',', $quiz->questions);
 $question_texts = $questions;
 $question_ids = array_keys($questions);
 
+// INSERT CATEGORY HERE
+
 usort($question_ids, function ($one, $two) use ($questionorder) {
 	return array_search($one, $questionorder) > array_search($two, $questionorder) ? 1 : -1;
 });
 
-foreach( $question_ids as $qid ){
-	$q = $question_texts[$qid];
-  //add result column for each user
-  $user_scores = get_scores($qid, $users);
-  // calculate mean score for question
-  $qms =  question_mean_score($quiz->id, $qid);
+$temp_sql_categorie = $DB->get_records_sql(
+    "SELECT mdl_question.id,mdl_question_categories.name FROM "
+    . "(mdl_question_categories INNER JOIN mdl_question "
+    . "ON mdl_question_categories.id=mdl_question.category)");
 
-  //$question_mean = calculate_average($user_scores);//(float)round($qms,3);
-  $score_count = array_sum( array_map( function($score){return ( is_numeric($score) ) ? 1 :0 ;} , $user_scores ) );
-  $score_sum = array_sum( array_map( function($score){return ( is_numeric($score) ) ? $score :0 ;} , $user_scores ) );
-  $question_mean = ($score_count == 0) ? "-" : round($score_sum / $score_count, 3) ;
-  $table->data[] = array_merge( array($q) , $user_scores , array( $question_mean ) );
+// converting obj->obj->value to array of id=>value
+$question_id_categories = array();
+foreach ($temp_sql_categorie as $qic){
+    $question_id_categories[$qic->id] = $qic->name;
+}
+
+$questionid_to_categoryid = $DB->get_records_sql("SELECT id,category FROM mdl_question;");
+
+foreach( $question_ids as $qid ){
+    if (isset($_GET['select_cate']) && $_GET['select_cate']!='All' && $_GET['select_cate']!=$questionid_to_categoryid[$qid]->category){
+        continue;
+    }
+    
+    $q = $question_texts[$qid];
+    //add result column for each user
+    $user_scores = get_scores($qid, $users);
+    // calculate mean score for question
+    $qms =  question_mean_score($quiz->id, $qid);
+
+    //$question_mean = calculate_average($user_scores);//(float)round($qms,3);
+    $score_count = array_sum( array_map( function($score){return ( is_numeric($score) ) ? 1 :0 ;} , $user_scores ) );
+    $score_sum = array_sum( array_map( function($score){return ( is_numeric($score) ) ? $score :0 ;} , $user_scores ) );
+    $question_mean = ($score_count == 0) ? "-" : round($score_sum / $score_count, 3) ;
+    
+    $table->data[] = array_merge(array($question_id_categories[$qid]), array($q) , $user_scores , array( $question_mean ));
 }
 // insert last row ( user mean scores )
 list($user_scores, $total_score) = user_mean_scores($users);
-$table->data[] = array_merge( array("User Mean Percentage, individual"), $user_scores);
-$table->data[] = array_merge( array("User Mean Percentage, all"), array_fill(0, count($user_scores), ''), array(number_format($total_score, 2) . '%'));
+$table->data[] = array_merge( array("","User Mean Percentage, individual"), $user_scores);
+$table->data[] = array_merge( array("","User Mean Percentage, all"), array_fill(0, count($user_scores), ''), array(number_format($total_score, 2) . '%'));
+
+
+$table_xls_data = " ";
+foreach ($table->head as $header_name){
+    $table_xls_data.=$header_name."\t";
+}
+$table_xls_data.="\n";
+foreach ($table->data as $row){
+    foreach ($row as $cell){
+        $table_xls_data.=str_replace(',','',strip_tags($cell))."\t";
+//        $table_xls_data.="hej\t";
+    }
+    $table_xls_data.="\n";
+}
+
+echo html_writer::link(new moodle_url('/local/reporting/outputxls.php', array('data'=>$table_xls_data)), get_string('export_to_excel', 'local_reporting'));
 
 // output table
 echo html_writer::table($table);
