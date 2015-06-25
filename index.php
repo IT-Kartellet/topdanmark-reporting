@@ -11,9 +11,11 @@ global $CFG, $USER, $PAGE, $DB, $OUTPUT;
 
 require_login();
 
-$context = get_context_instance(CONTEXT_SYSTEM);
+// get_context_instance to be removed (?), so fixed with non-deprecated call
+$context = context_system::instance(0);
+//$context = get_context_instance(CONTEXT_SYSTEM);
 
-$PAGE->requires->js('/local/reporting/jquery.min.js');
+$PAGE->requires->js('/local/reporting/jquery.min.js', true); // Load in head of page to prevent "$ is not a function errors"
 $PAGE->requires->js('/local/reporting/toggle.js');
 $PAGE->set_context($context);
 $PAGE->set_url('/reporting');
@@ -92,7 +94,7 @@ elseif(@isset($username)){
 //Run though each of these users to get context per course
 foreach($users as $account){
 
-    //Get the account of the user, which is needed since we are using id from the user and tons of other stoff along the way.
+    //Get the account of the user, which is needed since we are using id from the user and tons of other stuff along the way.
     $account = $DB->get_record('user', array('username' => $account), '*', MUST_EXIST);
     $account->courses = array();
 
@@ -125,7 +127,7 @@ foreach($users as $account){
 
         //Get Last access for the user to be displayed in the table
         $last_record = $DB->get_record('user_lastaccess', array('userid' => $account->id, 'courseid' => $course->id));
-        $last_access = $last_record->timeaccess;
+        $last_access = ($last_record == false) ? 0 : $last_record->timeaccess;
 
         //Look of the course is being tracked or not.
         if(count($user_completion['tracked_activities']) == 0){
