@@ -119,3 +119,8 @@ table.course_details tbody .name {
         margin-left: 0px;
     }
 }
+
+.error-paragraph {
+    color: red;
+    font-weight: bold;
+}
