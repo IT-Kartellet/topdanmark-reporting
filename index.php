@@ -15,7 +15,7 @@ require_login();
 $context = context_system::instance(0);
 //$context = get_context_instance(CONTEXT_SYSTEM);
 
-$PAGE->requires->js('/local/reporting/jquery.min.js', true); // Load in head of page to prevent "$ is not a function errors"
+$PAGE->requires->js('/local/reporting/jquery.min.js', true); // Load in head of page to prevent "$ is not a function" errors
 $PAGE->requires->js('/local/reporting/toggle.js');
 $PAGE->set_context($context);
 $PAGE->set_url('/reporting');
@@ -38,15 +38,13 @@ echo get_string('frontpage-description', 'local_reporting');
 
 echo $OUTPUT->box_end();
 
-// ----------
-
 // Check if a user id was already selected. If user id is 0, something else was selected, in which case set an error message
 $error = '';
 $selected_user_id = '';
 if (isset($_GET['userid'])) {
     $selected_user_id = $_GET['userid'];
 
-    if ($selected_user_id <= 0) {
+    if ($selected_user_id < 0) {
         $error = 'Vælg venligst en gyldig bruger';
     }
 }
@@ -54,7 +52,16 @@ if (isset($_GET['userid'])) {
 echo $OUTPUT->box_start();
 
 $user_list = get_relevant_users($USER);
-$is_manager = $number_of_users = count($user_list) > 1; // FIXME
+$is_manager = $number_of_users = count($user_list) > 1; // FIXME (better way to do this?)
+
+// Was "Alle" selected from the dropdown?
+//$actual_user_list = array();
+//if($selected_user_id == 0) {
+//    $actual_user_list = array_map(create_function('$o', 'return $o->id;'), $user_list);
+//    var_dump($actual_user_list);
+//} else {
+//    array_push($actual_user_list, $selected_user_id);
+//}
 
 // If user is a manager, generate a select list from which they can select a user to display (or all users)
 if ($is_manager === true) {
@@ -64,7 +71,7 @@ if ($is_manager === true) {
     echo $manager_form;
 
     // Get the relevant information for the select list, for each user
-    $sql = "SELECT id, firstname, lastname, username FROM mdl_user WHERE username IN('" . implode("','", $user_list) . "')";
+    $sql = "SELECT id, firstname, lastname, username FROM mdl_user WHERE username IN('" . implode("','", array_column($user_list, 'username')) . "')";
     $account_list = $DB->get_records_sql($sql);
 
     // Sort them according to need
@@ -75,9 +82,9 @@ if ($is_manager === true) {
 
     $selectlist .= html_writer::start_tag('select', array('name' => 'userid'));
 
-    $selectlist .= html_writer::tag('option', 'Vælg medarbejder', array('value' => '0'));
-    $selectlist .= html_writer::tag('option', 'Alle', array('value' => '0'));
-    $selectlist .= html_writer::tag('option', '-------------------------', array('value' => '0'));
+    $selectlist .= html_writer::tag('option', 'Vælg medarbejder', array('value' => '-1'));
+    $selectlist .= html_writer::tag('option', 'Alle', array('value' => 'all'));
+    $selectlist .= html_writer::tag('option', '-------------------------', array('value' => '-1'));
 
     // Generate the selectlist options
     foreach ($account_list as $u) {
@@ -137,23 +144,51 @@ if ($selected_user_id && $selected_user_id != 0 && !$error) {
     $activities_table_html .= html_writer::end_tag('tr');
     $activities_table_html .= html_writer::end_tag('thead');
 
-    //$activities_table_html .= html_writer::start_tag('tbody');
-    //$activities_table_html .= html_writer::end_tag('tbody');
+    $activities_table_html .= html_writer::start_tag('tbody');
 
+    // Build the table rows according to the data
+    $counter = 0;
+    foreach ($account_courses as $course) {
+        $activities_table_html .= html_writer::start_tag('tr', array("class" => ($counter & 1) ? "odd" : "even"));
+        // Get course completion data
+        $info = new completion_info($course);
+
+        // Load criteria to display
+        $completions = $info->get_completions($selected_user_id);
+
+        //Get the users completion status, and not just the one from the entire course
+        $user_completion = get_user_course_completion($completions);
+
+        $last_record = $DB->get_record('user_lastaccess', array('userid' => $selected_user_id, 'courseid' => $course->id));
+        $last_access = ($last_record == false) ? 0 : $last_record->timeaccess;
+
+        if (count($user_completion['tracked_activities']) == 0) {
+            $course_status = "Not Tracked";
+        } //If the course is tracked, we see if all activities has been completed.
+        elseif (count($user_completion['tracked_activities']) == count($user_completion['activities'])) {
+            $course_status = "Finished";
+            //Since the course is being tracked, but not all activities has been completed we show the number of activities vs. the number that have been completed.
+        } else {
+            $course_status = count($user_completion['activities']) . " / " . count($user_completion['tracked_activities']);
+        }
+
+        $activities_table_html .= html_writer::tag('td', $course->fullname);
+        $activities_table_html .= html_writer::tag('td', $course_status);
+        $activities_table_html .= html_writer::tag('td', $last_access == 0 ? 'Aldrig' : date('Y-m-d H:i', $last_access));
+        $activities_table_html .= html_writer::tag('td', html_writer::tag('a', 'Detaljer', array('href' => $CFG->wwwroot . '/local/reporting/course_details.php?&courseid=' . $course->id . '?&userid=' . $selected_user_id, 'target' => '_blank')));
+
+        $activities_table_html .= html_writer::end_tag('tr');
+
+        $counter++;
+    }
+
+    $activities_table_html .= html_writer::end_tag('tbody');
     $activities_table_html .= html_writer::end_tag('table');
 
     echo $activities_table_html;
-
-
-    foreach ($account_courses as $course) {
-
-    }
 }
 
 echo $OUTPUT->box_end();
-
-// ----------
-
 
 echo $OUTPUT->footer();
 ?>

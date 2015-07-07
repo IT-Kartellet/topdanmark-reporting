@@ -8,7 +8,7 @@ function get_relevant_users($user){
     if($user->username == 'admin'){
         global $DB;
         foreach($DB->get_records('user') as $uobj) {
-            $users[$uobj->username] = $uobj->username;
+            $users[$uobj->username] = array('id' => $uobj->id, 'username' => $uobj->username);
         }
     }
 

@@ -25,7 +25,7 @@
 }
 
 #top_course_view tbody tr {
-	text-align: center;
+	text-align: left;
 }
 
 #top_course_view tbody tr .department, #top_course_view tbody tr .shortname {
