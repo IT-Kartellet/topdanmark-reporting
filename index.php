@@ -16,7 +16,7 @@ $context = context_system::instance(0);
 //$context = get_context_instance(CONTEXT_SYSTEM);
 
 $PAGE->requires->js('/local/reporting/jquery.min.js', true); // Load in head of page to prevent "$ is not a function" errors
-$PAGE->requires->js('/local/reporting/toggle.js');
+$PAGE->requires->js('/local/reporting/script.js');
 $PAGE->set_context($context);
 $PAGE->set_url('/reporting');
 $PAGE->set_pagetype('site-index');
@@ -34,7 +34,7 @@ echo $OUTPUT->box_start();
 
 echo get_string('description', 'local_reporting') . "<br /><br />";
 
-echo get_string('frontpage-description', 'local_reporting');
+//echo get_string('frontpage-description', 'local_reporting');
 
 echo $OUTPUT->box_end();
 
@@ -50,9 +50,11 @@ if (isset($_GET['userid'])) {
 }
 
 echo $OUTPUT->box_start();
-
+//$user_list = get_top_org($USER->username, array(), false);
 $user_list = get_relevant_users($USER);
-$is_manager = $number_of_users = count($user_list) > 1; // FIXME (better way to do this?)
+
+$is_manager = $number_of_users = count($user_list) > 1; // FIXME (better way to do this)
+//$is_manager = true;
 
 // Was "Alle" selected from the dropdown?
 //$actual_user_list = array();
@@ -80,11 +82,11 @@ if ($is_manager === true) {
     // Selectlist variable for html_writer
     $selectlist = '';
 
-    $selectlist .= html_writer::start_tag('select', array('name' => 'userid'));
+    $selectlist .= html_writer::start_tag('select', array('id' => 'select-user', 'name' => 'userid'));
 
     $selectlist .= html_writer::tag('option', 'Vælg medarbejder', array('value' => '-1'));
-    $selectlist .= html_writer::tag('option', 'Alle', array('value' => 'all'));
-    $selectlist .= html_writer::tag('option', '-------------------------', array('value' => '-1'));
+    //$selectlist .= html_writer::tag('option', 'Alle', array('value' => 'all'));
+    $selectlist .= html_writer::tag('option', '-------------------------', array('value' => '-1', 'disabled' => ''));
 
     // Generate the selectlist options
     foreach ($account_list as $u) {
@@ -100,12 +102,12 @@ if ($is_manager === true) {
     echo $selectlist;
 
     $manager_form = '';
-    $manager_form .= html_writer::tag('input', '', array('type' => 'submit'));
+    $manager_form .= html_writer::tag('input', '', array('type' => 'submit', 'id' => 'submit-btn', 'disabled' => '', 'title' => 'Vælg først en medarbejder'));
     $manager_form .= html_writer::end_tag('form');
     echo $manager_form;
 } else {
-    // Otherwise, just set the username variable to the logged in user's username
-    $selected_user_id = $USER->username;
+    // Otherwise, just set the user id variable to the current user's id
+    $selected_user_id = $USER->id;
 }
 
 // If there was an error, display it
@@ -164,10 +166,10 @@ if ($selected_user_id && $selected_user_id != 0 && !$error) {
 
         if (count($user_completion['tracked_activities']) == 0) {
             $course_status = "Not Tracked";
-        } //If the course is tracked, we see if all activities has been completed.
+        } //If the course is tracked, we see if all activities has been completed
         elseif (count($user_completion['tracked_activities']) == count($user_completion['activities'])) {
             $course_status = "Finished";
-            //Since the course is being tracked, but not all activities has been completed we show the number of activities vs. the number that have been completed.
+            //Since the course is being tracked, but not all activities has been completed we show the number of activities vs. the number that have been completed
         } else {
             $course_status = count($user_completion['activities']) . " / " . count($user_completion['tracked_activities']);
         }
@@ -175,7 +177,7 @@ if ($selected_user_id && $selected_user_id != 0 && !$error) {
         $activities_table_html .= html_writer::tag('td', $course->fullname);
         $activities_table_html .= html_writer::tag('td', $course_status);
         $activities_table_html .= html_writer::tag('td', $last_access == 0 ? 'Aldrig' : date('Y-m-d H:i', $last_access));
-        $activities_table_html .= html_writer::tag('td', html_writer::tag('a', 'Detaljer', array('href' => $CFG->wwwroot . '/local/reporting/course_details.php?&courseid=' . $course->id . '?&userid=' . $selected_user_id, 'target' => '_blank')));
+        $activities_table_html .= html_writer::tag('td', html_writer::tag('a', 'Vis detaljer', array('href' => $CFG->wwwroot . '/local/reporting/course_details.php?&courseid=' . $course->id . '?&userid=' . $selected_user_id, 'target' => '_blank')));
 
         $activities_table_html .= html_writer::end_tag('tr');
 

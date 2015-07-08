@@ -96,11 +96,16 @@ foreach ($course_activities as $activity) {
         $status = "Not Tracked";
     }
 
-    // Determine which kind of report is needed, and check if it exists. If it exists, we link to it
-    if (file_exists($CFG->dirroot . "/mod/" . $activity_type . "/report.php")) {
-        $report_link = "<a href='$CFG->wwwroot/mod/$activity_type/report.php?id=$id'>Report</a>";
+    // If the current user hasn't got permission to view reports, don't let them
+    if(!has_capability('moodle/site:viewreports', $context)){
+        $report_link = 'Ingen adgang';
     } else {
-        $report_link = " - ";
+        // Determine which kind of report is needed, and check if it exists. If it exists, we link to it
+        if (file_exists($CFG->dirroot . "/mod/" . $activity_type . "/report.php")) {
+            $report_link = "<a href='$CFG->wwwroot/mod/$activity_type/report.php?id=$id'>Se rapport</a>";
+        } else {
+            $report_link = 'Ingen rapport';
+        }
     }
 
     //If the module supports grades, get the grades so we can display them
