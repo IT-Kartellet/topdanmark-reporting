@@ -42,3 +42,5 @@ $string['user'] = 'bruger';
 $string['category'] = 'kategori';
 $string['question_category'] = 'Spørgsmålskategori';
 $string['export_to_excel'] = 'Gem tabel som Excel-fil';
+$string['setuptitle'] = 'Header Text';
+$string['setupdescription'] = 'Header description that is shown on the frontpage of the reports.';

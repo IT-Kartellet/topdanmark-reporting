@@ -32,7 +32,7 @@ echo $OUTPUT->heading(get_string('title', 'local_reporting'), 1, 'title', 'repor
 
 echo $OUTPUT->box_start();
 
-echo get_string('description', 'local_reporting') . "<br /><br />";
+echo $CFG->local_reporting_header_text . "<br /><br />";
 
 //echo get_string('frontpage-description', 'local_reporting');
 
